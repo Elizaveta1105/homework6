@@ -3,6 +3,9 @@ from sys import argv
 from collections import defaultdict
 import shutil
 
+known_extensions = set()
+unknown_extensions = set()
+
 
 def mapping():
     latin_alphabet = list('abvgdeejzijklmnoprstufhzcss_y_euaABVGDEEJZIJKLMNOPRSTUFHZCSS_Y_EUA')
@@ -39,13 +42,13 @@ def process_files(root_path, file_path):
     category = define_category(file_path.suffix.lower())
     if is_archive(file_path):
         try:
-            extract_dir = root_path/category/file_path.stem
+            extract_dir = root_path / category / file_path.stem
             shutil.unpack_archive(file_path, extract_dir)
             file_path.unlink()
         except Exception:
             file_path.unlink()
     else:
-        move(root_path, file_path)
+        move(root_path, file_path, category)
 
 
 def create_categories():
@@ -72,15 +75,17 @@ def define_category(suffix):
 
     if suffix in categories_dict:
         category = categories_dict[suffix]
+        known_extensions.add(suffix)
+    else:
+        unknown_extensions.add(suffix)
 
     return category
 
 
-def move(root_path, file_path):
+def move(root_path, file_path, category):
     suffix = file_path.suffix
     name = file_path.stem
     new_name = normalize(name)+suffix
-    category = define_category(suffix.lower())
     new_folder = root_path/category
     new_path = new_folder/new_name
 
@@ -98,9 +103,18 @@ def sort_folder(root_path, folder_path):
             process_files(root_path, el)
 
 
+def write_to_file(known_ext, unknown_ext):
+    all_known_extensions = ", ".join(list(known_ext))
+    all_unknown_extensions = ", ".join(list(unknown_ext))
+    with open('result.txt', "w") as f:
+        f.write(f"Known extensions {all_known_extensions}\n")
+        f.write(f"Unknown extensions {all_unknown_extensions}")
+
+
 def main():
     path = Path(argv[1])
     sort_folder(path, path)
+    write_to_file(known_extensions, unknown_extensions)
 
 
 if __name__ == '__main__':
